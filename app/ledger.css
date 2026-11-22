@@ -65,8 +65,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   box-shadow: 0 24px 80px #0008;
 }
 .workspace-launcher::backdrop {
-  background: #101114c9;
-  backdrop-filter: blur(6px);
+  background: radial-gradient(ellipse at 50% 25%, #084e41, #101114 72%);
 }
 .workspace-launcher h2 {
   text-align: center;
@@ -111,5 +110,71 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
     align-items: center;
     min-height: 62px;
     padding-inline: 16px;
+  }
+}
+
+/* Keep the workspace concealed while the native chooser is open. */
+.shell:has(> .workspace-launcher[open]) > :not(.workspace-launcher) {
+  visibility: hidden;
+}
+
+.launcher-options button:focus-visible {
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes rumr-enter {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes rumr-chooser-enter {
+    from { opacity: 0; transform: translateY(16px) scale(.975); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes rumr-panel-enter {
+    from { opacity: 0; transform: translateX(24px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes rumr-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .workspace-launcher[open] {
+    animation: rumr-chooser-enter 320ms cubic-bezier(.2, .75, .3, 1) both;
+  }
+  .workspace-launcher[open] .launcher-options button {
+    animation: rumr-enter 260ms ease-out both;
+  }
+  .workspace-launcher[open] .launcher-options button:nth-child(2) {
+    animation-delay: 65ms;
+  }
+  .workspace-launcher[open] .launcher-options button:nth-child(3) {
+    animation-delay: 120ms;
+  }
+  .shell:not(:has(> .workspace-launcher[open])) main .content,
+  .login-form-wrap form,
+  .toast {
+    animation: rumr-enter 240ms ease-out both;
+  }
+  .overlay {
+    animation: rumr-fade 180ms ease-out both;
+  }
+  .overlay .panel {
+    animation: rumr-panel-enter 220ms ease-out both;
+  }
+  .launcher-options button, .btn, .nav, .new-card, .table-scroll tbody tr {
+    transition: background-color 160ms ease, border-color 160ms ease,
+      color 160ms ease, box-shadow 160ms ease, translate 160ms ease;
+  }
+  .launcher-options button:hover, .new-card:hover {
+    translate: 0 -3px;
+    box-shadow: 0 8px 20px #0005;
+  }
+  .btn:not(:disabled):active, .launcher-options button:active {
+    translate: 0 1px;
+  }
+  .table-scroll tbody tr:hover, .table-scroll tbody tr:focus-within {
+    background-color: #1b2827;
   }
 }
