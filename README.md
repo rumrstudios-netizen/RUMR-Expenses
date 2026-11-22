@@ -30,6 +30,16 @@ The existing ChatGPT-hosted site and its live data are untouched by this migrati
 
 Google synchronization still requires the one-time Apps Script setup in the Google Sheets panel. Project creation and expense changes then sync one-way from this website. Manual edits in managed spreadsheet tabs are replaced on sync. Receipt files remain private in the website. Existing connection settings must be transferred securely during live data migration; never add them to Git.
 
+## Remembered devices and PIN unlock
+
+On the first visit in a browser, sign in with the approved account and choose a 6–12 digit device PIN. Later visits and page reloads show the PIN unlock screen. **Lock** ends the open visit without forgetting the device. **Workspace settings → Forget device & sign out** removes the saved sign-in and revokes the current Supabase session. **Forgot PIN / use another account** removes the local device setup and returns to account sign-in.
+
+The browser stores only an AES-256-GCM encrypted access/refresh-token pair, protected by a PIN-derived PBKDF2-SHA256 key (600,000 iterations, random salt, fresh nonce per write). Account passwords and PINs are not stored. The decrypted session and key live only in page memory. Workspace APIs require a verified bearer token and the existing membership/ownership checks; old session cookies are not accepted and are cleared. Locked pages do not fetch ledger data. Refresh tokens are rotated and re-encrypted when needed, with browser Web Locks coordinating refreshes across tabs.
+
+Device setup belongs to a browser and website origin, not every browser on the physical device. Clearing site data, changing domains, or using private browsing may require setup again. Supabase revocation/session expiry also requires account sign-in. A device PIN is a convenience lock, not an additional authentication factor or protection against a compromised browser; use a longer PIN on trusted devices. Forgotten PIN recovery does not remove projects or receipts.
+
+Validation includes encryption/wrong-PIN/tamper tests and browser checks with mocked Supabase responses. Hosted account sign-in, token refresh, and receipt operations still require verification against the configured Supabase deployment before release.
+
 ## Local development
 
 Copy `.env.example` to `.env.local` and fill in your Supabase public configuration. Run `npm ci`, `npm run dev`. The app uses real Supabase authentication in development as well as production: there is no development identity bypass.
@@ -43,7 +53,8 @@ Run `npm test`, `npm run build` and `npm run typecheck`. Build checks can run wi
 - `app/api/receipt/sign/route.ts`: authenticated signed upload creation
 - `app/api/receipt/route.ts`: private receipt downloads
 - `lib/supabase/`: browser/server authentication clients and membership checks
-- `proxy.ts`: session refresh
+- `proxy.ts`: retire legacy auth cookies and prevent private response caching
+- `app/unlock.tsx`, `app/workspace.tsx`, `lib/auth/`: device setup, PIN unlock, and encrypted token storage
 - `supabase/migrations/`: database and Storage security policies
 
 Keep the same Supabase project and bucket when updating the app. Add new migrations; do not rewrite applied migration history. The current workspace bounds remain 200 projects and 5,000 expenses. Preserve authentication and ownership checks when adding team workflows.

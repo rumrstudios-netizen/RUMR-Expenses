@@ -1,10 +1,11 @@
-import {createServerClient} from '@supabase/ssr';
 import {NextResponse,type NextRequest} from 'next/server';
-export async function proxy(request:NextRequest){
- const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
- if(!url||!key)return NextResponse.next({request});
- let response=NextResponse.next({request});
- const supabase=createServerClient(url,key,{cookies:{getAll:()=>request.cookies.getAll(),setAll:items=>{items.forEach(({name,value})=>request.cookies.set(name,value));response=NextResponse.next({request});items.forEach(({name,value,options})=>response.cookies.set(name,value,options));response.headers.set('Cache-Control','private, no-store')}}});
- await supabase.auth.getUser();return response;
+// Retire the old cookie session. Workspace APIs accept only an unlocked bearer session.
+export function proxy(request:NextRequest){
+ const response=NextResponse.next();
+ for(const {name} of request.cookies.getAll()){
+  if(/^sb-.*-auth-token(?:\.\d+)?$/.test(name))response.cookies.delete(name);
+ }
+ response.headers.set('Cache-Control','private, no-store');
+ return response;
 }
 export const config={matcher:['/((?!_next/static|_next/image|favicon.ico|favicon.svg).*)']};
