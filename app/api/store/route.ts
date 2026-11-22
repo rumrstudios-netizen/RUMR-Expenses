@@ -1,3 +1,4 @@
+import {connectGoogle,createProjectSheet,googleClientId,sheetsClient,writeProjectSheet} from '@/lib/google-sheets';
 import {requireOwner,serverClient,errorStatus} from '@/lib/supabase/server';
 import {seed} from '@/lib/seed';
 export const dynamic='force-dynamic';
@@ -9,7 +10,7 @@ async function owner(){return (await requireOwner()).uid}
 async function load(uid:string){const sb=await serverClient();const {error:init}=await sb.from('ledger').upsert({owner:uid,document:seed(),revision:0},{onConflict:'owner',ignoreDuplicates:true});if(init)throw Error('Unable to initialize the workspace. Check the Supabase migration.');const {data:r,error}=await sb.from('ledger').select('document,revision').eq('owner',uid).single();if(error||!r)throw Error('Unable to load the workspace.');return {doc:r.document,revision:r.revision}}
 async function save(uid:string,d:any,rev:number){const sb=await serverClient();const {data,error}=await sb.from('ledger').update({document:d,revision:rev+1}).eq('owner',uid).eq('revision',rev).select('revision').maybeSingle();if(error||!data)throw Error('Another change was saved. Refresh and try again.');return rev+1}
 async function receiptExists(key:string){const sb=await serverClient();const {data,error}=await sb.storage.from('receipts').download(key);if(error||!data||data.size>8e6)return false;const a=new Uint8Array(await data.slice(0,12).arrayBuffer());const t=new TextDecoder();return (a[0]===137&&a[1]===80&&a[2]===78&&a[3]===71)||(a[0]===255&&a[1]===216&&a[2]===255)||(t.decode(a.slice(0,4))==='RIFF'&&t.decode(a.slice(8,12))==='WEBP')||t.decode(a.slice(0,5))==='%PDF-'}
-function publicDoc(d:any){return {...d,google:!!d.google}}
+function publicDoc(d:any){return {...d,google:!!d.google,googleProvider:d.google?.provider || (d.google ? 'legacy' : null),googleClientId:googleClientId(),googleEmail:d.google?.email}}
 async function bridge(g:any,body:any){const r=await fetch(g.url,{method:'POST',body:JSON.stringify({...body,secret:g.secret}),headers:{'Content-Type':'text/plain'},signal:AbortSignal.timeout(25000)});let j:any;try{j=await r.json()}catch{throw Error('Google returned a sign-in page. Check the web app deployment settings.')}if(!r.ok||!j.ok)throw Error(j.error||'Google sync failed.');return j}
 export async function GET(){try{return reply(publicDoc((await load(await owner())).doc))}catch(e){return reply({error:(e as Error).message},errorStatus(e,500))}}
 export async function POST(req:Request){try{
@@ -21,11 +22,31 @@ export async function POST(req:Request){try{
  const e=b.value||{},p=d.projects.find((x:any)=>x.id===e.project);if(!p)throw Error('Select a valid project.');const a=amount(e.amount),receipt=text(e.receipt,500)||null;if(receipt&&(!receipt.startsWith(encodeURIComponent(uid)+'/')||!await receiptExists(receipt)))throw Error('Receipt not found.');if(a===null&&!receipt)throw Error('Enter an amount or attach a screenshot.');if(![...d.methods,'Not recorded'].includes(e.method))throw Error('Choose a payment type.');const id=text(e.id)||crypto.randomUUID(),old=d.expenses.find((x:any)=>x.id===id);if(old&&old.project!==e.project)throw Error('An expense cannot move between projects.');if(!old&&d.expenses.length>=5000)throw Error('Expense limit reached.');const category=['Food','Transport','Stay','Equipment','Crew','Production','Other'].includes(e.category)?e.category:'Other';const value={id,project:p.id,date:date(e.date),name:text(e.name,160)||(a===null?'Receipt to review':category+' expense'),amount:a,category,method:text(e.method,50),payer:text(e.payer,100),description:text(e.description,1500),personal:!!e.personal,receipt};d.expenses=old?d.expenses.map((x:any)=>x.id===id?value:x):[value,...d.expenses];pid=p.id;p.sync='Needs sync';p.updated=new Date().toISOString();
  }else if(b.op==='delete'){const e=d.expenses.find((x:any)=>x.id===b.id);if(!e)throw Error('Expense not found.');pid=e.project;d.expenses=d.expenses.filter((x:any)=>x.id!==b.id);const p=d.projects.find((x:any)=>x.id===pid);p.updated=new Date().toISOString();p.sync='Needs sync';}
  else if(b.op==='methods'){const methods=Array.isArray(b.value)?[...new Set(b.value.map((x:any)=>text(x,50)).filter(Boolean))]:[];if(!methods.length||methods.length>20)throw Error('Keep between 1 and 20 payment types.');d.methods=methods;}
- else if(b.op==='connect'){const url=text(b.url,500),secret=text(b.secret,200);if(!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)||secret.length<24)throw Error('Enter a valid /exec URL and connection code.');await bridge({url,secret},{action:'ping'});d.google={url,secret};}
+ else if(b.op==='connect-google'){const code=text(b.code,4096);if(!code)throw Error('Google authorization code is required.');d.google=await connectGoogle(code,new URL(o).origin);}
  else if(b.op==='disconnect')d.google=null;
  else if(b.op==='sync'){if(!d.projects.some((x:any)=>x.id===b.id))throw Error('Project not found.');pid=b.id;}
  else throw Error('Unknown action.');
  rev=await save(uid,d,rev);
- if(pid&&d.google){const p=d.projects.find((x:any)=>x.id===pid);try{const j=await bridge(d.google,{action:'sync',project:p,expenses:d.expenses.filter((x:any)=>x.project===pid)});if(!/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[\w-]+/.test(j.url))throw Error('Google returned an invalid link.');p.sheet=j.url;p.sync='Synced';p.synced=new Date().toISOString();rev=await save(uid,d,rev)}catch(e){warning='Saved online. Google sync needs a retry: '+(e as Error).message}}
+ if(pid&&d.google){
+  const p=d.projects.find((x:any)=>x.id===pid),expenses=d.expenses.filter((x:any)=>x.project===pid);
+  try{
+   if(d.google.provider==='oauth'){
+    const client=await sheetsClient(d.google.refresh);
+    if(!p.googleSheetId||p.googleConnectionId!==d.google.connectionId){
+     p.googleSheetId=await createProjectSheet(client,p.name);
+     p.googleConnectionId=d.google.connectionId;
+     p.sheet='https://docs.google.com/spreadsheets/d/'+p.googleSheetId+'/edit';
+     rev=await save(uid,d,rev);
+    }
+    await writeProjectSheet(client,p.googleSheetId,p.name,expenses);
+   }else{
+    const j=await bridge(d.google,{action:'sync',project:p,expenses});
+    if(!/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[\w-]+/.test(j.url))throw Error('Google returned an invalid link.');
+    p.sheet=j.url;
+   }
+   p.sync='Synced';p.synced=new Date().toISOString();
+   await save(uid,d,rev);
+  }catch(e){warning='Saved online. Google sync needs a retry: '+(e as Error).message}
+ }
  return reply({...publicDoc(d),selected:pid,warning});
  }catch(e){return reply({error:(e as Error).message||'Unable to save.'},errorStatus(e,400))}}

@@ -58,3 +58,9 @@ Run `npm test`, `npm run build` and `npm run typecheck`. Build checks can run wi
 - `supabase/migrations/`: database and Storage security policies
 
 Keep the same Supabase project and bucket when updating the app. Add new migrations; do not rewrite applied migration history. The current workspace bounds remain 200 projects and 5,000 expenses. Preserve authentication and ownership checks when adding team workflows.
+
+### Google Sheets without Apps Script
+
+In Google Cloud, enable the Google Sheets API and configure the OAuth consent screen. Create a **Web application** OAuth client with `https://rumrexpenses.vercel.app` as an authorized JavaScript origin. Add each additional app origin separately if needed. An external consent screen in Testing issues refresh tokens that expire after seven days. Use an Internal audience for an eligible Google Workspace account, or publish the app for durable access.
+
+Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in the production hosting environment and redeploy. Keep the secret server-side. In the app, open **Google Sheets → Connect Google account** and select the RUMR account. The app requests access to files it creates or that the user specifically grants to it. New projects get a spreadsheet. Use **Sync now** on an existing project to create its spreadsheet or retry a failed sync. The app maintains the Expenses tab, including when expenses are edited or deleted. Existing legacy sheets remain in Drive. Changing the OAuth client or secret requires reconnecting Google.
