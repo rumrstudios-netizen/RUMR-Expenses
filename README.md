@@ -4,9 +4,11 @@ Private production expense app using Next.js, Supabase Auth, Postgres and privat
 
 ## Deployment
 
-1. Create a **private** GitHub repository named `rumr-shoot-ledger` and push this source to `main`. Never commit `.env` files, live data exports, credentials or receipts.
+Current production project: `rumr-shoot-ledger` in the `rumrstudios-9135` Vercel team. Source: `rumrstudios-netizen/RUMR-Expenses`, production branch `main`. Supabase project: `yfibayrehuyvcdmwfuoe` (Mumbai). The earlier `rumr-expenses` deployment was used for initial hosting checks. Use the Git-connected `rumr-shoot-ledger` project for ongoing releases.
+
+1. Create a **private** GitHub repository named `RUMR-Expenses` and push this source to `main`. Never commit `.env` files, live data exports, credentials or receipts.
 2. Create a Supabase project and apply `supabase/migrations/20261122072128_ledger.sql` through its SQL editor or migration tooling. It creates the RLS-protected ledger, membership allowlist and private `receipts` bucket (8 MB maximum).
-3. In Supabase Auth, create/invite the owner `rumrstudios@gmail.com` and set their password through the account setup flow. Other accounts require an explicit row in `allowed_members`. Keep public signup disabled. Application data and receipt policies enforce both approved membership and per-user ownership.
+3. In Supabase Auth, create the owner `rumrstudios@gmail.com` using Authentication → Users → Add user → Create new user, set their password privately, and enable Auto Confirm User. Other accounts require an explicit row in `allowed_members`. Keep public signup disabled. Application data and receipt policies enforce both approved membership and per-user ownership.
 4. Import the private GitHub repository into Vercel. Framework: **Next.js**. Build: `npm run build`. Install: `npm ci`. Production branch: `main`.
 5. Set these Vercel environment variables for Production and Preview:
    - `NEXT_PUBLIC_SUPABASE_URL`
