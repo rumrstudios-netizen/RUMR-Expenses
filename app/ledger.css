@@ -13,3 +13,30 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(max-width:700px){h1,.heading h1{font-size:34px}.content{padding-top:28px}.filters .select{flex:1;width:auto}.review{flex:1}.login-page{grid-template-columns:1fr}.login-story{padding:30px;border-right:0;border-bottom:1px solid var(--line)}.login-story h1{font-size:36px;margin:30px 0 16px}.login-story>small{display:none}.login-form-wrap{padding:36px 24px}.cards{grid-template-columns:1fr}.new-card{min-height:180px}.card-body>div{flex-direction:row;align-items:flex-end}.cover{height:110px}.stat strong{font-size:27px}header .btn{padding:8px}header .avatar{display:none}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;scroll-behavior:auto!important}}
 .brand,.brand b{color:#ededf0}.brand b>span{color:var(--lime)}.profile{color:#dddfe5}.project-nav button.on{color:#ededf0}.panel-head>button{color:#a2a9b6}.muted{color:#858d9c}
+
+.brand.expense-brand {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border: 1px solid #286459;
+  border-radius: 10px;
+  background: #084e41;
+}
+.brand.expense-brand img {
+  width: 76px;
+  height: 38px;
+}
+.expense-brand > .expense-brand-label {
+  display: block;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: none;
+  color: #f5eed9;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}

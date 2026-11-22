@@ -1,7 +1,8 @@
 'use client';
+import Brand from './brand';
 import {useEffect,useState} from 'react';
 import type {Session} from '@supabase/supabase-js';
-import {ArrowRight,Film,LockKeyhole} from 'lucide-react';
+import {ArrowRight,LockKeyhole} from 'lucide-react';
 import {browserClient} from '@/lib/supabase/browser';
 import {forgetDevice,hasDevice,rememberDevice,unlockDevice} from '@/lib/auth/device';
 export default function Unlock({onUnlocked}:{onUnlocked:()=>void}){
@@ -30,7 +31,7 @@ export default function Unlock({onUnlocked}:{onUnlocked:()=>void}){
  }
  function reset(){try{forgetDevice();setMode('login');setPin('');setConfirm('');setPending(null);setError('')}catch{setError('Allow browser storage, then try again.')}}
  return <main className="login-page">
-  <section className="login-story"><a className="brand" href="/"><span><Film size={25}/></span><b>rumr<span>.</span><small>SHOOT LEDGER</small></b></a><div><div className="eyebrow">LESS ADMIN. MORE ACTION.</div><h1>Great shoots.<br/><span>Clear numbers.</span></h1><p>Your projects, expenses, and receipts. One quiet place to keep production moving.</p></div><small>THE WORKSPACE BEHIND THE WORK.</small></section>
+  <section className="login-story"><Brand/><div><div className="eyebrow">LESS ADMIN. MORE ACTION.</div><h1>Great shoots.<br/><span>Clear numbers.</span></h1><p>Your projects, expenses, and receipts. One quiet place to keep production moving.</p></div><small>THE WORKSPACE BEHIND THE WORK.</small></section>
   <section className="login-form-wrap"><form className="login-form" onSubmit={submit} aria-busy={busy}>
    <div className="eyebrow">RUMR STUDIOS</div><h2>{mode==='unlock'?'Unlock your workspace.':mode==='setup'?'Make this device yours.':mode==='loading'?'Opening workspace…':'Welcome back.'}</h2>
    <p>{mode==='unlock'?'Enter your device PIN to pick up where you left off.':mode==='setup'?'Choose a 6–12 digit PIN. Next time, this is all you’ll need on this browser.':'Sign in once, then use a device PIN on returning visits.'}</p>

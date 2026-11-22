@@ -3,7 +3,7 @@ import "./globals.css";
 import "./ledger.css";
 
 export const metadata: Metadata = {
-  title: "Rumr Shoot Ledger",
+  title: "RUMR Expense",
   description: "Every shoot. Every expense.",
   icons: {
     icon: "/favicon.svg",
