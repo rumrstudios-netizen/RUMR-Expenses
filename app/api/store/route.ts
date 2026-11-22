@@ -1,4 +1,4 @@
-import {requireOwner,serverClient} from '@/lib/supabase/server';
+import {requireOwner,serverClient,errorStatus} from '@/lib/supabase/server';
 import {seed} from '@/lib/seed';
 export const dynamic='force-dynamic';
 const reply=(d:any,s=200)=>Response.json(d,{status:s,headers:{'Cache-Control':'private, no-store'}});
@@ -11,7 +11,7 @@ async function save(uid:string,d:any,rev:number){const sb=await serverClient();c
 async function receiptExists(key:string){const sb=await serverClient();const {data,error}=await sb.storage.from('receipts').download(key);if(error||!data||data.size>8e6)return false;const a=new Uint8Array(await data.slice(0,12).arrayBuffer());const t=new TextDecoder();return (a[0]===137&&a[1]===80&&a[2]===78&&a[3]===71)||(a[0]===255&&a[1]===216&&a[2]===255)||(t.decode(a.slice(0,4))==='RIFF'&&t.decode(a.slice(8,12))==='WEBP')||t.decode(a.slice(0,5))==='%PDF-'}
 function publicDoc(d:any){return {...d,google:!!d.google}}
 async function bridge(g:any,body:any){const r=await fetch(g.url,{method:'POST',body:JSON.stringify({...body,secret:g.secret}),headers:{'Content-Type':'text/plain'},signal:AbortSignal.timeout(25000)});let j:any;try{j=await r.json()}catch{throw Error('Google returned a sign-in page. Check the web app deployment settings.')}if(!r.ok||!j.ok)throw Error(j.error||'Google sync failed.');return j}
-export async function GET(){try{return reply(publicDoc((await load(await owner())).doc))}catch(e){return reply({error:(e as Error).message},500)}}
+export async function GET(){try{return reply(publicDoc((await load(await owner())).doc))}catch(e){return reply({error:(e as Error).message},errorStatus(e,500))}}
 export async function POST(req:Request){try{
  const o=req.headers.get('origin');if(!o||![new URL(req.url).host,req.headers.get('host')].includes(new URL(o).host))return reply({error:'Request not allowed.'},403);
  const uid=await owner(),b:any=await req.json();let {doc:d,revision:rev}=await load(uid);let pid='';let warning='';
@@ -28,4 +28,4 @@ export async function POST(req:Request){try{
  rev=await save(uid,d,rev);
  if(pid&&d.google){const p=d.projects.find((x:any)=>x.id===pid);try{const j=await bridge(d.google,{action:'sync',project:p,expenses:d.expenses.filter((x:any)=>x.project===pid)});if(!/^https:\/\/docs\.google\.com\/spreadsheets\/d\/[\w-]+/.test(j.url))throw Error('Google returned an invalid link.');p.sheet=j.url;p.sync='Synced';p.synced=new Date().toISOString();rev=await save(uid,d,rev)}catch(e){warning='Saved online. Google sync needs a retry: '+(e as Error).message}}
  return reply({...publicDoc(d),selected:pid,warning});
- }catch(e){return reply({error:(e as Error).message||'Unable to save.'},400)}}
+ }catch(e){return reply({error:(e as Error).message||'Unable to save.'},errorStatus(e,400))}}
