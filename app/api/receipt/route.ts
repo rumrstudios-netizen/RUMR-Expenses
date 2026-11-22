@@ -1,0 +1,3 @@
+import {requireOwner} from '@/lib/supabase/server';
+export const dynamic='force-dynamic';
+export async function GET(req:Request){try{const {uid,supabase}=await requireOwner(),key=new URL(req.url).searchParams.get('key')||'';if(!key.startsWith(uid+'/'))return new Response('Not found',{status:404});const {data,error}=await supabase.storage.from('receipts').download(key);if(error||!data)return new Response('Not found',{status:404});const type=data.type||'application/octet-stream';return new Response(data,{headers:{'Content-Type':type,'X-Content-Type-Options':'nosniff','Cache-Control':'private, no-store','Content-Disposition':type==='application/pdf'?'attachment; filename="receipt.pdf"':'inline'}})}catch{return new Response('Unauthorized',{status:401})}}

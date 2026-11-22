@@ -1,0 +1,1 @@
+export async function GET(){const configured=!!process.env.NEXT_PUBLIC_SUPABASE_URL&&!!process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;return Response.json({service:'rumr-ledger',configured},{status:configured?200:503,headers:{'Cache-Control':'no-store'}})}
