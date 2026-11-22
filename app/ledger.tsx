@@ -12,6 +12,13 @@ const cats=['Food','Transport','Stay','Equipment','Crew','Production','Other'];
 function Select(p:any){return <div className="select"><select {...p}/><ChevronDown size={16}/></div>}
 function Field({name,optional,children}:any){return <label><span>{name} {optional&&<small>optional</small>}</span>{children}</label>}
 export default function Ledger(){
+ const launcher = useRef<HTMLDialogElement>(null);
+ useEffect(() => {
+  const dialog = launcher.current;
+  dialog?.showModal();
+  dialog?.querySelector<HTMLButtonElement>('.launch-primary')?.focus();
+  return () => dialog?.close();
+ }, []);
  const [data,setData]=useState<any>(null),[active,setActive]=useState(''),[scope,setScope]=useState('shoot'),[q,setQ]=useState(''),[pay,setPay]=useState('All payments'),[receiptView,setReceiptView]=useState(false),[projectsView,setProjectsView]=useState(false),[reviewOnly,setReviewOnly]=useState(false),[modal,setModal]=useState(''),[form,setForm]=useState<any>({}),[busy,setBusy]=useState(false),[error,setError]=useState(''),[toast,setToast]=useState(''),[file,setFile]=useState<File|null>(null),[mode,setMode]=useState('manual'),[mobile,setMobile]=useState(false),[code,setCode]=useState(''),[endpoint,setEndpoint]=useState(''),[methods,setMethods]=useState('');const input=useRef<HTMLInputElement>(null);
  async function api(body?:any){const r=await authFetch('/api/store',body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{cache:'no-store'});const j:any=await r.json();if(!r.ok)throw Error(j.error||'Unable to save.');return j}
  async function refresh(){try{setError('');setData(await api())}catch(e){setError((e as Error).message)}}
@@ -29,6 +36,20 @@ export default function Ledger(){
  async function saveExpense(e:any){e.preventDefault();setBusy(true);setError('');try{let receipt=form.receipt;if(file){const r=await authFetch('/api/receipt/sign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:file.type,size:file.size})}),j:any=await r.json();if(!r.ok)throw Error(j.error);const {error:uploadError}=await browserClient().storage.from('receipts').uploadToSignedUrl(j.path,j.token,file,{contentType:file.type});if(uploadError)throw uploadError;receipt=j.path;setForm({...form,receipt});setFile(null)}await act({op:'expense',value:{...form,receipt}})}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
  function choose(f?:File){if(!f)return;if(!['image/png','image/jpeg','image/webp','application/pdf'].includes(f.type)||f.size>8e6){setError('Choose a PNG, JPG, WebP or PDF up to 8 MB.');return}setFile(f);setMode('receipt');setError('')}
  return <div className="shell">
+ <dialog ref={launcher} className="workspace-launcher" aria-labelledby="workspace-launcher-title">
+  <h2 id="workspace-launcher-title">Where do you want to go?</h2>
+  <div className="launcher-options">
+   <button type="button" onClick={() => { launcher.current?.close(); go(); }}>
+    <LayoutGrid size={23} aria-hidden="true"/>Dashboard
+   </button>
+   <button type="button" className="launch-primary" onClick={() => { launcher.current?.close(); go('', false, true); }}>
+    <FolderOpen size={23} aria-hidden="true"/>Open existing project
+   </button>
+   <button type="button" onClick={() => { launcher.current?.close(); openProject(); }}>
+    <Plus size={23} aria-hidden="true"/>Create new project
+   </button>
+  </div>
+ </dialog>
  <aside className={mobile?'open':''}><Brand/><div className="workspace"><span>R</span><div>Rumr Studios<small>Production workspace</small></div></div><h6>WORKSPACE</h6><button className={!active&&!receiptView&&!projectsView?'nav selected':'nav'} onClick={()=>go()}><LayoutGrid/>Overview</button><button className={active||projectsView?'nav selected':'nav'} onClick={()=>go('',false,true)}><FolderOpen/>Shoot projects <small>{ps.length}</small></button><button className={receiptView?'nav selected':'nav'} onClick={()=>go('',true)}><Receipt/>Receipts</button><h6 className="project-label">YOUR PROJECTS<button aria-label="New project" onClick={()=>openProject()}><Plus size={16}/></button></h6><div className="project-nav">{ps.map((x:any)=><button key={x.id} onClick={()=>go(x.id)} className={active===x.id?'on':''}><span className="square"/>{x.name}</button>)}</div><div className="side-bottom"><button className="nav" disabled={!data} onClick={()=>settings('google')}><FileSpreadsheet/>Google Sheets {data?.google&&<Check size={15}/>}</button><button className="nav" disabled={!data} onClick={()=>settings('settings')}><Settings/>Workspace settings</button><p><ShieldCheck size={14}/>Private workspace</p><div className="profile"><span>RS</span><div>Rumr Studios<small>Make things happen.</small></div></div></div></aside>
  {mobile&&<div className="scrim" onClick={()=>setMobile(false)}/>}
  <main><header><div><button className="menu" onClick={()=>setMobile(!mobile)} aria-label="Open menu">☰</button><span>Workspace</span><i>/</i><b>{p?.name||(receiptView?'Receipts':projectsView?'Projects':'Overview')}</b></div><div><span className="cloud"><Cloud size={16}/>{error&&!data?'Connection issue':data?'Saved online':'Loading…'}</span><button aria-label="Refresh workspace" onClick={refresh}><RefreshCw size={17}/></button><button className="btn" onClick={()=>window.location.reload()}>Lock</button><span className="avatar">RS</span></div></header><div className="content"><div className="heading"><div><div className="eyebrow">{p?'SHOOT PROJECT':'RUMR / PRODUCTION WORKSPACE'}</div><h1>{p?p.name:receiptView?'Receipts':projectsView?'Shoot projects':<>Production, <span>under control.</span></>}</h1><p>{p?<><MapPin size={15}/>{p.location||'Location not added'} <span>·</span>{date(p.start)}{p.end?' – '+date(p.end):''} <em>{p.status}</em></>:receiptView?'Your proof of payment, together in one place.':projectsView?'From first call to wrap. Every production in one place.':'A clear view of your shoots, spending, and what needs attention.'}</p></div><div className="actions"><button className="btn" disabled={!data} onClick={()=>openProject(p)}>{p?<Pencil size={16}/>:<Plus size={17}/>} {p?'Edit project':'New project'}</button><button className="btn primary" disabled={!ps.length} onClick={()=>openExpense()}><Plus size={18}/>Add expense</button></div></div>

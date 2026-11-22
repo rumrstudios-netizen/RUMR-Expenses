@@ -54,3 +54,62 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .btn.primary:hover {
   background: var(--rumr-green-hover);
 }
+
+.workspace-launcher {
+  width: min(720px, calc(100% - 32px));
+  padding: clamp(20px, 5vw, 36px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  color: var(--ink);
+  background: #181a1e;
+  box-shadow: 0 24px 80px #0008;
+}
+.workspace-launcher::backdrop {
+  background: #101114c9;
+  backdrop-filter: blur(6px);
+}
+.workspace-launcher h2 {
+  text-align: center;
+  font-size: clamp(21px, 4vw, 26px);
+  margin-bottom: 24px;
+}
+.launcher-options {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  gap: 12px;
+}
+.launcher-options button {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 12px;
+  min-height: 104px;
+  padding: 14px 10px;
+  border: 1px solid #363a43;
+  border-radius: 12px;
+  background: #23252a;
+  font-weight: 600;
+}
+.launcher-options button:hover {
+  background: #2c2f35;
+}
+.launcher-options .launch-primary {
+  color: var(--rumr-cream);
+  background: var(--rumr-green);
+  border-color: var(--rumr-accent);
+}
+.launcher-options .launch-primary:hover {
+  background: var(--rumr-green-hover);
+}
+@media (max-width: 540px) {
+  .launcher-options {
+    grid-template-columns: 1fr;
+  }
+  .launcher-options button {
+    grid-auto-flow: column;
+    justify-content: start;
+    align-items: center;
+    min-height: 62px;
+    padding-inline: 16px;
+  }
+}
